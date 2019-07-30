@@ -16,17 +16,28 @@ namespace WebAPIFromXamarin
     [DesignTimeVisible(false)]
     public partial class MainPage : ContentPage
     {
+        static HttpClient httpClient = new HttpClient();
+        event EventHandler appearing = delegate { };
+
         public MainPage()
         {
             InitializeComponent();
         }
 
-        protected async override void OnAppearing()
+        protected override void OnAppearing()
         {
             base.OnAppearing();
+            appearing += onAppearing; //subscribe
+            onAppearing(this, EventArgs.Empty);  //raise event      
+        }
+
+        private async void onAppearing(object sender, EventArgs args)
+        {
+            appearing -= onAppearing; //unsubscribe
             try
-            {
-                var todo = GetAPIDataFromWeb();
+            {//On UI Thread
+                var todos = await GetAPIDataFromWeb(); //Background Thread
+                todoListView.ItemsSource = todos; //Back on UI Thread
             }
             catch (Exception exp)
             {
@@ -37,14 +48,41 @@ namespace WebAPIFromXamarin
         private async Task<List<Todo>> GetAPIDataFromWeb()
         {
             List<Todo> todos = new List<Todo>();
-            var httpClient = new HttpClient();
-            var response = await httpClient.GetStringAsync("https://jsonplaceholder.typicode.com/todos/1");
+            var url = "https://jsonplaceholder.typicode.com/todos/1";
+            var response = await httpClient.GetStringAsync(url);
             if (response != null)
             {
                 todos = JsonConvert.DeserializeObject<List<Todo>>(response);
-                todoListView.ItemsSource = todos;
             }
             return todos;
         }
+
+        #region Commented
+        //protected async override void OnAppearing()
+        //{
+        //    base.OnAppearing();
+        //    try
+        //    {
+        //        var todo = GetAPIDataFromWeb();
+        //    }
+        //    catch (Exception exp)
+        //    {
+        //        Console.WriteLine(exp.Message);
+        //    }
+        //}
+
+        //private async Task<List<Todo>> GetAPIDataFromWeb()
+        //{
+        //    List<Todo> todos = new List<Todo>();
+        //    var httpClient = new HttpClient();
+        //    var response = await httpClient.GetStringAsync("https://jsonplaceholder.typicode.com/todos/1");
+        //    if (response != null)
+        //    {
+        //        todos = JsonConvert.DeserializeObject<List<Todo>>(response);
+        //        todoListView.ItemsSource = todos;
+        //    }
+        //    return todos;
+        //}
+        #endregion
     }
 }
